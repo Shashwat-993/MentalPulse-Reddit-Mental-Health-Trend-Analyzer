@@ -1,0 +1,47 @@
+# MentalPulse — pinned Python dependencies (Python 3.11+).
+#
+# Versions are pinned for reproducibility (resolved against PyPI at scaffold
+# time). The stack spans data engineering, ML, and GenAI, so it is intentionally
+# broad; each phase only needs a subset. In a fresh virtualenv the heavy
+# ML + cloud SDK pins (torch, transformers, snowflake-*) may need minor
+# resolution — install per phase if you hit a conflict.
+#
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+
+# ---- Core / config ----
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pandas==3.0.3
+pyarrow==24.0.0
+
+# ---- Phase 1: Reddit ingestion ----
+praw==7.8.1
+emoji==2.15.0                     # emoji handling during text normalization
+
+# ---- Phase 1/2: Lakehouse transforms + tests (dbt on Databricks) ----
+dbt-databricks==1.12.0
+
+# ---- Phase 2: ML + experiment tracking ----
+scikit-learn==1.9.0
+transformers==5.10.2
+torch==2.12.0
+sentence-transformers==5.5.1      # also used for Phase 3 local embeddings
+mlflow==3.13.0
+
+# ---- Phase 1/2: Snowflake enterprise warehouse ----
+snowflake-connector-python==4.6.0
+snowflake-snowpark-python==1.51.1
+
+# ---- Phase 3: Retrieval-augmented agent ----
+anthropic==0.106.0                # official Anthropic Python SDK (Claude API)
+langgraph==1.2.4
+langchain-core==1.4.1
+lancedb==0.33.0                   # local open-source vector store
+
+# ---- Phase 4: Dashboard + RAG evaluation ----
+streamlit==1.58.0
+ragas==0.4.3
+
+# ---- Dev / tooling ----
+pytest==9.0.3
