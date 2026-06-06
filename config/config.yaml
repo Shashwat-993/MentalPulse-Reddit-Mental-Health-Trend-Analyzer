@@ -1,0 +1,73 @@
+# MentalPulse — non-secret configuration.
+#
+# Secrets (API keys, passwords, the hash salt) live in .env and are read via
+# config/loader.py — NEVER put secrets in this file. Everything here is safe
+# to commit.
+
+project:
+  name: MentalPulse
+  environment: dev          # dev | prod
+
+# --- Phase 1: Reddit ingestion ------------------------------------------------
+reddit:
+  # Public, well-established research communities. Add/remove freely.
+  subreddits:
+    - mentalhealth
+    - Anxiety
+    - depression
+    - bipolar
+    - ADHD
+    - therapy
+  time_filter: month        # PRAW top() window: hour|day|week|month|year|all
+  post_limit: 200           # max posts per listing, per subreddit
+  listings:                 # which listings to pull
+    - top
+    - new
+  fetch_comments: true
+  top_level_comments_limit: 20   # top-level comments per post (no deep trees)
+  cache_dir: data/cache     # local request cache so re-runs don't re-fetch
+
+# --- Local medallion mirror (dev). Mirrors the Databricks Delta layout. -------
+paths:
+  bronze: data/bronze
+  silver: data/silver
+  gold: data/gold
+
+# --- Phase 1: anonymization ---------------------------------------------------
+anonymization:
+  hash_algo: sha256
+  # The salt is read from .env (MENTALPULSE_HASH_SALT) and is NEVER stored here.
+  drop_fields:              # raw fields that must not survive past Bronze
+    - author
+    - author_fullname
+
+# --- Phase 2: ML --------------------------------------------------------------
+ml:
+  # Pretrained sentiment/emotion model for social text. Finalized + documented
+  # in Phase 2; this is a sensible default for short, informal posts.
+  sentiment_model: cardiffnlp/twitter-roberta-base-sentiment-latest
+  crisis:
+    # Weak-supervision baseline: heuristic labels from a documented, conservative
+    # distress lexicon (the lexicon lives in code, not here) + thresholds.
+    weak_label_threshold: 0.5
+    classifier: logistic_regression   # transparent + explainable by design
+  mlflow_experiment: /Shared/mentalpulse
+
+# --- Phase 3: RAG + agent -----------------------------------------------------
+rag:
+  retriever: lancedb        # lancedb (open-source) | cortex (Snowflake) — swappable
+  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  lancedb_path: data/lancedb
+  cortex_search_service: mentalpulse_corpus
+  top_k: 5
+  # The LLM model id is read from .env (ANTHROPIC_MODEL); pull the current name
+  # from the official Anthropic docs rather than hardcoding it here.
+  max_tokens: 4096
+
+# --- Phase 1/2: Snowflake (non-secret config; creds in .env) ------------------
+snowflake:
+  warehouse: MENTALPULSE_WH
+  warehouse_size: XSMALL
+  database: MENTALPULSE
+  schema: GOLD
+  role: MENTALPULSE_ROLE

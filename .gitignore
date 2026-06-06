@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# Secrets — NEVER commit real credentials. Only .env.example is tracked.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Local data-lake mirror (Bronze/Silver/Gold). Never commit data extracted
+# from Reddit. Keep the folder skeleton via .gitkeep files only.
+# ---------------------------------------------------------------------------
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# Local vector store + caches
+data/lancedb/
+data/cache/
+*.lance
+
+# ---------------------------------------------------------------------------
+# ML artifacts / experiment tracking
+# ---------------------------------------------------------------------------
+mlruns/
+mlartifacts/
+*.ckpt
+*.pt
+*.pth
+*.pkl
+*.joblib
+*.onnx
+
+# ---------------------------------------------------------------------------
+# dbt
+# ---------------------------------------------------------------------------
+dbt/**/target/
+dbt/**/dbt_packages/
+dbt/**/logs/
+.dbt/
+
+# ---------------------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
