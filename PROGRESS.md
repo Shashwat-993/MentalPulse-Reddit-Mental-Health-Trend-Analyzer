@@ -15,6 +15,12 @@ Built one phase at a time. Each phase is verified before the next begins.
 ## Phase 1 — Data Engineering ⬜
 _Reddit → Bronze → Silver → Gold, mirrored locally + on Databricks, with an
 approved path to load Gold into Snowflake._
+
+> ⏳ **External gate:** Reddit API access request submitted **2026-06-09** under
+> the Responsible Builder Policy (decision targeted ~7 days). App creation and
+> credentials unlock on approval. Note: the policy restricts ML training on
+> Reddit data without approval — Phase 2 model plans may need adjusting to
+> whatever the approval covers.
 - [ ] `ingestion/reddit_client.py` — PRAW auth + caching
 - [ ] `ingestion/fetch_posts.py` — posts + top-level comments → Bronze parquet
 - [ ] `ingestion/anonymize.py` — salted hash + PII strip (Bronze→Silver)

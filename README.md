@@ -30,7 +30,10 @@ These rules are non-negotiable and are enforced in code, not just documented:
 4. **Not a clinical tool.** See the disclaimer above (also shown in the dashboard
    and the agent's system prompt).
 5. **Respect Reddit API ToS + rate limits.** Descriptive User-Agent, aggressive
-   caching, PRAW backoff. Non-commercial use only.
+   caching, PRAW backoff. Non-commercial use only. API access is obtained
+   through Reddit's **Responsible Builder Policy** access-request process
+   (pre-approval required before app creation), with the research/portfolio
+   use case — including any ML use of the data — declared up front.
 
 ## Tech stack
 
