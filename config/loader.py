@@ -11,7 +11,7 @@ Usage
     from config.loader import load_config
 
     cfg = load_config()
-    cfg.reddit.subreddits          # ["mentalhealth", "Anxiety", ...]
+    cfg.source.subreddits          # ["mentalhealth", "Anxiety", ...]
     cfg.path("bronze")             # absolute Path to the Bronze dir
     cfg.secrets.require("reddit_client_id", "reddit_client_secret")
     client_id = cfg.secrets.reddit_client_id
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     cfg = load_config()
     print(f"Loaded config from: {cfg.config_path}")
     print(f"Project: {cfg.project.name} ({cfg.project.environment})")
-    print(f"Subreddits: {cfg.reddit.subreddits}")
+    print(f"Subreddits: {cfg.source.subreddits}")
     print(f"Bronze path: {cfg.path('bronze')}")
     print("Secrets present:")
     for field_name in Secrets.__dataclass_fields__:

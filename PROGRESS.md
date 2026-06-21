@@ -13,17 +13,18 @@ Built one phase at a time. Each phase is verified before the next begins.
 - [x] `docs/architecture.md` (diagram) + `docs/interview_narrative.md` skeleton
 
 ## Phase 1 — Data Engineering ⬜
-_Reddit → Bronze → Silver → Gold, mirrored locally + on Databricks, with an
-approved path to load Gold into Snowflake._
+_Reddit research corpus → Bronze → Silver → Gold, mirrored locally + on
+Databricks, with an approved path to load Gold into Snowflake._
 
-> ⏳ **External gate:** Reddit API access request submitted **2026-06-09** under
-> the Responsible Builder Policy (decision targeted ~7 days). App creation and
-> credentials unlock on approval. Note: the policy restricts ML training on
-> Reddit data without approval — Phase 2 model plans may need adjusting to
-> whatever the approval covers.
-- [ ] `ingestion/reddit_client.py` — PRAW auth + caching
-- [ ] `ingestion/fetch_posts.py` — posts + top-level comments → Bronze parquet
-- [ ] `ingestion/anonymize.py` — salted hash + PII strip (Bronze→Silver)
+> 🔄 **Source decision (2026-06-15):** the live Reddit API was dropped after the
+> Responsible Builder Policy request went unanswered for 2+ weeks. Phase 1 now
+> uses a **pre-collected, already-anonymized Reddit research corpus** — primary:
+> Low et al.'s Reddit Mental Health Dataset (Zenodo); guaranteed-open fallback:
+> GoEmotions (Apache-2.0). No approval gate, and the project keeps its Reddit
+> framing. First step: verify the dataset download once network egress is enabled
+> in the environment settings.
+- [ ] Load research corpus → Bronze parquet (download + parse; verify access first)
+- [ ] `ingestion/anonymize.py` — enforce/verify de-identification + PII strip (Bronze→Silver)
 - [ ] Databricks notebooks 01–03 (Bronze / Silver / Gold)
 - [ ] dbt project + tests (not_null/unique keys, accepted_values on subreddit)
 - [ ] Snowflake `01_setup.sql` + loader (**approve approach/credits first**)

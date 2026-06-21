@@ -22,24 +22,26 @@ Science/ML, and GenAI/LLM roles.
 These rules are non-negotiable and are enforced in code, not just documented:
 
 1. **Public data only.** No private subreddits, DMs, or authenticated-user scraping.
-2. **Anonymize at ingestion.** Author ids are salted-SHA-256 hashed (or dropped)
-   in the first transform; raw usernames never survive past Bronze. PII (emails,
-   phones, @handles, URLs) is stripped from text.
+2. **Anonymize at ingestion.** The research corpus is already de-identified; the
+   first transform enforces this — any author id is salted-SHA-256 hashed (or
+   dropped) and never survives past Bronze. PII (emails, phones, @handles, URLs)
+   is stripped from text.
 3. **Aggregate, never expose individuals.** Dashboards and agent answers report
    trends/cohorts only — never single-user content or re-identifying quotes.
 4. **Not a clinical tool.** See the disclaimer above (also shown in the dashboard
    and the agent's system prompt).
-5. **Respect Reddit API ToS + rate limits.** Descriptive User-Agent, aggressive
-   caching, PRAW backoff. Non-commercial use only. API access is obtained
-   through Reddit's **Responsible Builder Policy** access-request process
-   (pre-approval required before app creation), with the research/portfolio
-   use case — including any ML use of the data — declared up front.
+5. **Use a licensed research corpus, non-commercially.** Phase 1 sources a
+   pre-collected, already-anonymized Reddit research dataset (Low et al.'s Reddit
+   Mental Health Dataset; GoEmotions as a fallback) under its published
+   research/open license — no live scraping. Non-commercial use only. (A live
+   Reddit API path would require Responsible Builder Policy pre-approval and is
+   deferred.)
 
 ## Tech stack
 
 | Layer | Tooling |
 | ----- | ------- |
-| Ingestion | PRAW + Python |
+| Ingestion | Reddit research corpus (Low et al. / GoEmotions) + Python |
 | Lakehouse | Databricks Delta Lake, medallion (Bronze/Silver/Gold) |
 | Transforms | dbt-databricks (models + tests) |
 | ML + tracking | scikit-learn / HuggingFace transformers, MLflow |
@@ -59,7 +61,7 @@ and the open-source-vs-enterprise dual-deployment comparison.
 ```
 .
 ├── config/        # config.yaml + loader (reads .env for secrets)
-├── ingestion/     # PRAW client, fetch posts/comments, anonymization
+├── ingestion/     # research-corpus loader, parsing, anonymization
 ├── data/          # local Bronze/Silver/Gold mirror (gitignored)
 ├── databricks/    # medallion + model-training notebooks
 ├── dbt/           # dbt-databricks project (Silver/Gold models + tests)
@@ -84,8 +86,9 @@ python -m config.loader
 ```
 
 See [`.env.example`](.env.example) for the full list of credentials. Required
-keys are introduced phase by phase (Reddit for Phase 1; Anthropic + Snowflake +
-Databricks as later phases come online).
+keys are introduced phase by phase. Phase 1 needs **no** Reddit API keys (it loads
+a research corpus); Snowflake + Databricks come online in Phase 1/2, and Anthropic
+in Phase 3.
 
 ## How to run
 
@@ -95,7 +98,9 @@ status and per-phase run instructions (added as each phase lands).
 ## Status
 
 **Phase 0 — scaffold complete.** Project structure, config loader, pinned
-dependencies, and responsible-use guardrails are in place. Phases 1–4 (data
-engineering, ML, RAG agent, dashboard/eval) are next.
+dependencies, and responsible-use guardrails are in place. Phase 1's data source
+is settled — a pre-collected, already-anonymized Reddit research corpus, so there
+is no API-approval gate. Phases 1–4 (data engineering, ML, RAG agent,
+dashboard/eval) are next.
 
 _Screenshots: TBD (added in Phase 4)._
