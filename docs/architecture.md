@@ -17,7 +17,7 @@ dashboard.
 
 ```mermaid
 flowchart LR
-    R[Reddit public API<br/>PRAW] --> B[Bronze Delta<br/>raw landed]
+    R[Reddit research corpus<br/>Low et al. / GoEmotions] --> B[Bronze Delta<br/>raw landed]
     B --> S[Silver Delta<br/>anonymized + cleaned]
     S --> G[Gold Delta<br/>features + daily aggregates]
     G -->|sentiment + crisis scores| G
@@ -43,11 +43,16 @@ flowchart LR
     S --> M2 --> G
 ```
 
+> **Source note:** Phase 1 ingests a pre-collected, already-anonymized Reddit
+> research corpus (Low et al.'s Reddit Mental Health Dataset; GoEmotions
+> fallback) instead of the live Reddit API — no approval gate, identical
+> downstream pipeline. A live API source (e.g. Bluesky) can be added later.
+
 ## Medallion layers
 
 | Layer  | Contents | Notes |
 | ------ | -------- | ----- |
-| Bronze | Raw Reddit posts + top-level comments | Immutable landing zone. |
+| Bronze | Raw Reddit posts + comments (from the research corpus) | Immutable landing zone. |
 | Silver | Anonymized, deduped, cleaned | Raw usernames dropped/hashed here — they never reach Silver. PII stripped. |
 | Gold   | `gold_posts_features`, `gold_subreddit_daily` | Per-post features + daily subreddit aggregates; model scores added in Phase 2. |
 
@@ -76,5 +81,7 @@ compare open-source vs enterprise head-to-head:
 ## Responsible data use
 
 Public data only; anonymize at ingestion; aggregate, never expose individuals;
-not a clinical tool; respect Reddit API ToS and rate limits. See the README's
-"Responsible Data Use" section.
+not a clinical tool. Phase 1 uses a licensed, already-anonymized Reddit research
+corpus (no live scraping); a live API path would require Reddit's Responsible
+Builder Policy pre-approval and is deferred. See the README's "Responsible Data
+Use" section.
