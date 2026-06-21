@@ -8,9 +8,17 @@ project:
   name: MentalPulse
   environment: dev          # dev | prod
 
-# --- Phase 1: Reddit ingestion ------------------------------------------------
-reddit:
-  # Public, well-established research communities. Add/remove freely.
+# --- Phase 1: data source -----------------------------------------------------
+# Primary source is a pre-collected, already-anonymized Reddit research corpus
+# (no live API, no approval gate). The corpus is downloaded once at the start of
+# Phase 1 (see PROGRESS.md). A live API source (e.g. Bluesky) can be added later.
+source:
+  type: research_corpus     # research_corpus | live_api (live_api deferred)
+  # Primary dataset, with a guaranteed-open fallback if it is ever unavailable.
+  dataset: reddit_mental_health   # Low et al. Reddit Mental Health Dataset (Zenodo)
+  fallback_dataset: go_emotions   # google-research-datasets/go_emotions (Apache-2.0)
+  raw_dir: data/raw         # downloaded corpus lands here before Bronze
+  # Mental-health communities to keep when the corpus is labeled by subreddit.
   subreddits:
     - mentalhealth
     - Anxiety
@@ -18,14 +26,6 @@ reddit:
     - bipolar
     - ADHD
     - therapy
-  time_filter: month        # PRAW top() window: hour|day|week|month|year|all
-  post_limit: 200           # max posts per listing, per subreddit
-  listings:                 # which listings to pull
-    - top
-    - new
-  fetch_comments: true
-  top_level_comments_limit: 20   # top-level comments per post (no deep trees)
-  cache_dir: data/cache     # local request cache so re-runs don't re-fetch
 
 # --- Local medallion mirror (dev). Mirrors the Databricks Delta layout. -------
 paths:
@@ -34,6 +34,8 @@ paths:
   gold: data/gold
 
 # --- Phase 1: anonymization ---------------------------------------------------
+# The research corpus is already de-identified; this step enforces and verifies
+# it — any author-like field is hashed (salt from .env) or dropped before Silver.
 anonymization:
   hash_algo: sha256
   # The salt is read from .env (MENTALPULSE_HASH_SALT) and is NEVER stored here.
