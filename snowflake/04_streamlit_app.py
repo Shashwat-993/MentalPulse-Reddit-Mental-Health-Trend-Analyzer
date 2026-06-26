@@ -1,31 +1,31 @@
-"""MentalPulse dashboard (Streamlit). Implemented in Phase 4.
+"""MentalPulse dashboard — Streamlit-in-Snowflake deployment target (Phase 4).
 
-Primary target: Streamlit-in-Snowflake. A local-Streamlit fallback (hitting
-Snowflake) is documented for when Free Edition / plan limits get in the way.
+The dashboard itself is implemented and runnable locally at
+``dashboard/app.py``:
 
-Planned panels:
-  * Subreddit sentiment trends over time
-  * Crisis-signal volume over time (AGGREGATE ONLY — never individual content)
-  * A chat box wired to the RAG agent (rag/agent.py)
-  * A visible disclaimer banner (this is NOT a clinical tool)
+    streamlit run dashboard/app.py
 
-Status: stub. Run with `streamlit run snowflake/04_streamlit_app.py` once built.
+It serves aggregate sentiment / crisis-signal trends and a preview analyst
+panel, driven by a swappable data-access layer (``dashboard/data.py``) that uses
+sample data today and live Gold/Snowflake once the pipeline lands.
+
+This module is the **Streamlit-in-Snowflake** deployment variant: the same
+panels, but reading Gold through a Snowpark session instead of the local data
+layer (Streamlit-in-Snowflake has no local filesystem and authenticates via the
+active session). Wiring that Snowpark data source is finalized in Phase 4.
 """
 
 from __future__ import annotations
 
-# The disclaimer is shared from rag/prompts.py so the dashboard, README, and
-# agent all show the same language.
-DISCLAIMER_TODO = (
-    "Research/portfolio project. NOT a diagnostic or crisis-intervention tool. "
-    "Reports aggregate trends only — never individual users."
-)
-
 
 def main() -> None:
-    # TODO(Phase 4): build the Streamlit app (trends, aggregate crisis volume,
-    # agent chat, disclaimer banner). Import DISCLAIMER from rag.prompts.
-    raise NotImplementedError("Dashboard is implemented in Phase 4.")
+    # TODO(Phase 4): render the dashboard panels using a Snowpark-backed data
+    # source (get_active_session() -> Gold tables) and deploy as a
+    # Streamlit-in-Snowflake app. For local use, run dashboard/app.py instead.
+    raise NotImplementedError(
+        "Streamlit-in-Snowflake deployment is finalized in Phase 4; "
+        "run dashboard/app.py for the local dashboard."
+    )
 
 
 if __name__ == "__main__":

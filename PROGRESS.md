@@ -48,8 +48,12 @@ _LangGraph agent with a swappable retrieval layer (LanceDB vs Cortex Search)._
       refuses individual-level/unsafe requests (**approve Cortex credits first**)
 
 ## Phase 4 — Dashboard, Eval, Polish ⬜
-- [ ] Streamlit dashboard (sentiment trends, aggregate crisis volume, agent chat,
-      disclaimer banner) — Streamlit-in-Snowflake + local fallback
+> The dashboard shell was brought forward and runs now on sample data
+> (`streamlit run dashboard/app.py`); it wires to live data as Phases 1-3 land.
+- [~] Streamlit dashboard shell built & runnable on sample data
+      (`dashboard/app.py`): sentiment trends, aggregate crisis volume, preview
+      analyst panel, disclaimer banner; data-access seam swaps to live
+      Gold/Snowflake. Streamlit-in-Snowflake deploy finalized in Phase 4.
 - [ ] `eval/ragas_eval.py` — ~15 Q&A; faithfulness/relevancy/context P&R; both backends
 - [ ] `docs/architecture.md` — finalize diagram + dual-deployment comparison table
 - [ ] `docs/interview_narrative.md` — STAR writeup + 6–8 Q&A

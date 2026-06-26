@@ -65,9 +65,11 @@ and the open-source-vs-enterprise dual-deployment comparison.
 ├── data/          # local Bronze/Silver/Gold mirror (gitignored)
 ├── databricks/    # medallion + model-training notebooks
 ├── dbt/           # dbt-databricks project (Silver/Gold models + tests)
-├── snowflake/     # warehouse setup, Gold load, Cortex Search, Streamlit app
+├── snowflake/     # warehouse setup, Gold load, Cortex Search, SiS deploy
 ├── rag/           # retriever interface + 2 backends, tools, LangGraph agent
+├── dashboard/     # Streamlit dashboard (runnable now on sample data)
 ├── eval/          # Ragas evaluation (both retriever backends)
+├── tests/         # pytest suite
 └── docs/          # architecture + interview narrative
 ```
 
@@ -92,8 +94,14 @@ in Phase 3.
 
 ## How to run
 
-Built incrementally across four phases — see [`PROGRESS.md`](PROGRESS.md) for
-status and per-phase run instructions (added as each phase lands).
+A dashboard is runnable now (sample data until the pipeline lands):
+
+```bash
+streamlit run dashboard/app.py
+```
+
+The full system is built incrementally across four phases — see
+[`PROGRESS.md`](PROGRESS.md) for status and per-phase run instructions.
 
 ## Status
 
