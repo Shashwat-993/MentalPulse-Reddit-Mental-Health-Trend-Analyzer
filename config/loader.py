@@ -53,6 +53,7 @@ class Secrets:
     snowflake_account: str | None = None
     snowflake_user: str | None = None
     snowflake_password: str | None = None
+    snowflake_pat: str | None = None  # Programmatic Access Token (sidesteps MFA)
     # Databricks (Phase 1/2)
     databricks_host: str | None = None
     databricks_token: str | None = None
@@ -70,6 +71,7 @@ class Secrets:
             snowflake_account=os.getenv("SNOWFLAKE_ACCOUNT"),
             snowflake_user=os.getenv("SNOWFLAKE_USER"),
             snowflake_password=os.getenv("SNOWFLAKE_PASSWORD"),
+            snowflake_pat=os.getenv("SNOWFLAKE_PAT"),
             databricks_host=os.getenv("DATABRICKS_HOST"),
             databricks_token=os.getenv("DATABRICKS_TOKEN"),
             databricks_http_path=os.getenv("DATABRICKS_HTTP_PATH"),
