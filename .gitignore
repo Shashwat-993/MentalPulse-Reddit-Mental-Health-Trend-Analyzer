@@ -65,3 +65,4 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+dbt/**/.user.yml
