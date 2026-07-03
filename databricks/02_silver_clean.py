@@ -65,9 +65,10 @@ for kind, pattern in PII_PATTERNS.items():
         F.regexp_replace("text", pattern.pattern, REDACTION_TEMPLATE.format(kind=kind)),
     )
 
-# 4. parse dates; drop unparseable
+# 4. parse dates; drop unparseable (try_to_date nulls bad input instead of
+#    raising under ANSI mode, mirroring the local pipeline's errors="coerce")
 silver = silver.withColumn(
-    "created_date", F.to_date("created_date", "yyyy/MM/dd")
+    "created_date", F.expr("try_to_date(created_date, 'yyyy/MM/dd')")
 ).where(F.col("created_date").isNotNull())
 
 # 5. dedupe by post_id (earliest period alphabetically, for determinism)

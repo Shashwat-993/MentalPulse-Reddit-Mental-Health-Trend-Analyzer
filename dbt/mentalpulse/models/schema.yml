@@ -13,13 +13,14 @@ models:
           - not_null
           # Mirrors config/config.yaml source.subreddits — update both together.
           - accepted_values:
-              values:
-                - mentalhealth
-                - anxiety
-                - depression
-                - adhd
-                - bipolarreddit
-                - suicidewatch
+              arguments:
+                values:
+                  - mentalhealth
+                  - anxiety
+                  - depression
+                  - adhd
+                  - bipolarreddit
+                  - suicidewatch
       - name: created_date
         tests: [not_null]
       - name: author_hash
@@ -44,13 +45,14 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - mentalhealth
-                - anxiety
-                - depression
-                - adhd
-                - bipolarreddit
-                - suicidewatch
+              arguments:
+                values:
+                  - mentalhealth
+                  - anxiety
+                  - depression
+                  - adhd
+                  - bipolarreddit
+                  - suicidewatch
       - name: week
         tests: [not_null]
       - name: n_posts

@@ -12,7 +12,7 @@ Built one phase at a time. Each phase is verified before the next begins.
 - [x] `.env.example`
 - [x] `docs/architecture.md` (diagram) + `docs/interview_narrative.md` skeleton
 
-## Phase 1 — Data Engineering 🟨 (local pipeline ✅; cloud runs pending)
+## Phase 1 — Data Engineering 🟨 (local ✅ + Databricks/dbt ✅; Snowflake load blocked on account config)
 _Reddit research corpus → Bronze → Silver → Gold, mirrored locally + on
 Databricks, with an approved path to load Gold into Snowflake._
 
@@ -35,18 +35,30 @@ Databricks, with an approved path to load Gold into Snowflake._
 - [x] Local Silver + Gold transforms (`ingestion/transforms.py`,
       `ingestion/run_pipeline.py`) — run on the real corpus: 203,293 Silver
       rows, 396 weekly Gold rows, Nov 2018–Apr 2020, verification passed
-- [x] Databricks notebooks 01–03 (Bronze / Silver / Gold) — written, mirror the
-      local transforms; not yet executed against a workspace
-- [x] dbt project + tests (not_null/unique `post_id`, accepted_values on
-      `subreddit`) — `dbt/mentalpulse/`; runs once the Bronze Delta table exists
-- [x] Snowflake `01_setup.sql` + loader (`02_load_gold.sql`,
-      `snowflake/load_gold.py`) — code-complete; **execution still gated on
-      approving the approach/credit spend**
+- [x] Databricks lakehouse populated (2026-07-03): corpus CSVs uploaded to the
+      `mentalpulse.bronze.raw` volume; Bronze Delta table created via the SQL
+      Statement API using the exact logic of notebook 01. Bronze/Silver/Gold
+      row counts match the local mirror (203,293 / 203,293 / 396), and the
+      anonymization checks were re-proven in-warehouse (0 raw-author leaks,
+      0 unscrubbed PII). Notebooks 01–03 remain the reproducible/documented
+      path for cluster-based runs.
+- [x] dbt project + tests — `dbt run` built silver/gold on Databricks and
+      **`dbt test` passes 15/15** (not_null/unique `post_id`, accepted_values
+      on `subreddit`, not_null dates/weeks/counts)
+- [~] Snowflake `01_setup.sql` + loader (`02_load_gold.sql`,
+      `snowflake/load_gold.py`) — code-complete and **approved (2026-07-03)**,
+      but the load is blocked by account auth config: PAT auth fails with
+      "Network policy is required" and password auth demands interactive TOTP
+      MFA. One-time fix in Snowsight (as ACCOUNTADMIN): create a network
+      policy (e.g. `CREATE NETWORK POLICY mentalpulse_allow ALLOWED_IP_LIST =
+      ('0.0.0.0/0')` — or tighter) and `ALTER USER <user> SET NETWORK_POLICY =
+      mentalpulse_allow`, then re-run `python snowflake/load_gold.py`.
 - [~] Acceptance: local Bronze parquet ✅; zero raw usernames in Silver ✅
       (proven: 0 of 179,173 raw authors survive; enforced on every run +
-      pytest); Gold schema documented ✅ (`docs/data_model.md`); dbt tests
-      pass ⏳ (pending a populated Databricks workspace); approved path to
-      Snowflake ⏳ (loader ready, awaiting approval)
+      pytest, re-verified on Databricks); Gold schema documented ✅
+      (`docs/data_model.md`); dbt tests pass ✅ (15/15 against the live
+      workspace); approved path to Snowflake 🟨 (approved; loader ready;
+      blocked on the network-policy fix above)
 
 ## Phase 2 — Machine Learning ⬜
 _Two MLflow-tracked models; scores written back to Gold and pushed to Snowflake._

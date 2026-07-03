@@ -9,7 +9,9 @@ with cleaned as (
     select
         post_id,
         subreddit,
-        to_date(created_date, 'yyyy/MM/dd')            as created_date,
+        -- try_to_date mirrors the local pipeline's errors="coerce": unparseable
+        -- dates become NULL and are dropped below (ANSI mode would error).
+        try_to_date(created_date, 'yyyy/MM/dd')        as created_date,
         case
             when author is not null
             then sha2(concat('{{ env_var("MENTALPULSE_HASH_SALT") }}', ':', author), 256)
