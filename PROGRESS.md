@@ -12,24 +12,41 @@ Built one phase at a time. Each phase is verified before the next begins.
 - [x] `.env.example`
 - [x] `docs/architecture.md` (diagram) + `docs/interview_narrative.md` skeleton
 
-## Phase 1 — Data Engineering ⬜
+## Phase 1 — Data Engineering 🟨 (local pipeline ✅; cloud runs pending)
 _Reddit research corpus → Bronze → Silver → Gold, mirrored locally + on
 Databricks, with an approved path to load Gold into Snowflake._
 
 > 🔄 **Source decision (2026-06-15):** the live Reddit API was dropped after the
 > Responsible Builder Policy request went unanswered for 2+ weeks. Phase 1 now
-> uses a **pre-collected, already-anonymized Reddit research corpus** — primary:
-> Low et al.'s Reddit Mental Health Dataset (Zenodo); guaranteed-open fallback:
+> uses a **pre-collected Reddit research corpus** — primary: Low et al.'s Reddit
+> Mental Health Dataset (Zenodo 3941387, ODC-PDDL); guaranteed-open fallback:
 > GoEmotions (Apache-2.0). No approval gate, and the project keeps its Reddit
-> framing. First step: verify the dataset download once network egress is enabled
-> in the environment settings.
-- [ ] Load research corpus → Bronze parquet (download + parse; verify access first)
-- [ ] `ingestion/anonymize.py` — enforce/verify de-identification + PII strip (Bronze→Silver)
-- [ ] Databricks notebooks 01–03 (Bronze / Silver / Gold)
-- [ ] dbt project + tests (not_null/unique keys, accepted_values on subreddit)
-- [ ] Snowflake `01_setup.sql` + loader (**approve approach/credits first**)
-- [ ] Acceptance: local Bronze parquet; zero raw usernames in Silver (proven);
-      Gold schema documented; dbt tests pass; approved path to Snowflake
+> framing.
+
+> ⚠️ **Finding (2026-07-03):** the corpus is **not** de-identified at the author
+> level — its `author` column holds raw Reddit usernames. De-identification
+> therefore genuinely happens in our Bronze→Silver step, and Bronze/raw data
+> must never leave the machine (`data/` is gitignored). Docs corrected.
+- [x] Load research corpus → Bronze parquet — verified access, downloaded 6
+      subreddits × pre/post windows (checksummed, cached), landed 203,293 rows
+      (`ingestion/corpus.py`, `ingestion/load_corpus.py`)
+- [x] `ingestion/anonymize.py` — salted-SHA-256 author hashing, PII scrub
+      (email/URL/u-handle/@mention/phone), `assert_anonymized` verification
+- [x] Local Silver + Gold transforms (`ingestion/transforms.py`,
+      `ingestion/run_pipeline.py`) — run on the real corpus: 203,293 Silver
+      rows, 396 weekly Gold rows, Nov 2018–Apr 2020, verification passed
+- [x] Databricks notebooks 01–03 (Bronze / Silver / Gold) — written, mirror the
+      local transforms; not yet executed against a workspace
+- [x] dbt project + tests (not_null/unique `post_id`, accepted_values on
+      `subreddit`) — `dbt/mentalpulse/`; runs once the Bronze Delta table exists
+- [x] Snowflake `01_setup.sql` + loader (`02_load_gold.sql`,
+      `snowflake/load_gold.py`) — code-complete; **execution still gated on
+      approving the approach/credit spend**
+- [~] Acceptance: local Bronze parquet ✅; zero raw usernames in Silver ✅
+      (proven: 0 of 179,173 raw authors survive; enforced on every run +
+      pytest); Gold schema documented ✅ (`docs/data_model.md`); dbt tests
+      pass ⏳ (pending a populated Databricks workspace); approved path to
+      Snowflake ⏳ (loader ready, awaiting approval)
 
 ## Phase 2 — Machine Learning ⬜
 _Two MLflow-tracked models; scores written back to Gold and pushed to Snowflake._

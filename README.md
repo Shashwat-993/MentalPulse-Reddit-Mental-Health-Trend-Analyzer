@@ -22,18 +22,21 @@ Science/ML, and GenAI/LLM roles.
 These rules are non-negotiable and are enforced in code, not just documented:
 
 1. **Public data only.** No private subreddits, DMs, or authenticated-user scraping.
-2. **Anonymize at ingestion.** The research corpus is already de-identified; the
-   first transform enforces this — any author id is salted-SHA-256 hashed (or
-   dropped) and never survives past Bronze. PII (emails, phones, @handles, URLs)
-   is stripped from text.
+2. **Anonymize at ingestion.** The research corpus turned out to contain **raw
+   usernames** (verified 2026-07-03), so de-identification happens in our
+   Bronze→Silver transform: every author id is salted-SHA-256 hashed and the
+   raw column dropped — raw usernames never survive past Bronze, and Bronze
+   never leaves the machine (`data/` is gitignored). PII (emails, phones,
+   handles/@mentions, URLs) is scrubbed from text. Verified on every pipeline
+   run (`ingestion.anonymize.assert_anonymized`) and pinned by tests.
 3. **Aggregate, never expose individuals.** Dashboards and agent answers report
    trends/cohorts only — never single-user content or re-identifying quotes.
 4. **Not a clinical tool.** See the disclaimer above (also shown in the dashboard
    and the agent's system prompt).
 5. **Use a licensed research corpus, non-commercially.** Phase 1 sources a
-   pre-collected, already-anonymized Reddit research dataset (Low et al.'s Reddit
-   Mental Health Dataset; GoEmotions as a fallback) under its published
-   research/open license — no live scraping. Non-commercial use only. (A live
+   pre-collected Reddit research dataset (Low et al.'s Reddit Mental Health
+   Dataset, Zenodo 3941387, ODC-PDDL; GoEmotions as a fallback) under its
+   published open license — no live scraping. Non-commercial use only. (A live
    Reddit API path would require Responsible Builder Policy pre-approval and is
    deferred.)
 
@@ -94,21 +97,33 @@ in Phase 3.
 
 ## How to run
 
-A dashboard is runnable now (sample data until the pipeline lands):
+The local data pipeline (needs `MENTALPULSE_HASH_SALT` in `.env`):
+
+```bash
+python -m ingestion.load_corpus    # download corpus (~590 MB, cached) + land Bronze
+python -m ingestion.run_pipeline   # Bronze -> Silver -> Gold + anonymization proof
+```
+
+The dashboard is runnable now (sample data until Phase 2 scores land):
 
 ```bash
 streamlit run dashboard/app.py
 ```
 
-The full system is built incrementally across four phases — see
-[`PROGRESS.md`](PROGRESS.md) for status and per-phase run instructions.
+Tests: `pytest`. Cloud mirrors: see [`dbt/README.md`](dbt/README.md)
+(dbt-databricks) and the notebooks in [`databricks/`](databricks/). The full
+system is built incrementally across four phases — see
+[`PROGRESS.md`](PROGRESS.md) for status.
 
 ## Status
 
-**Phase 0 — scaffold complete.** Project structure, config loader, pinned
-dependencies, and responsible-use guardrails are in place. Phase 1's data source
-is settled — a pre-collected, already-anonymized Reddit research corpus, so there
-is no API-approval gate. Phases 1–4 (data engineering, ML, RAG agent,
-dashboard/eval) are next.
+**Phase 1 — local data engineering complete.** The research corpus (Low et
+al.'s Reddit Mental Health Dataset — 203k posts, 6 communities, Nov 2018–Apr
+2020) flows through Bronze → Silver → Gold locally, with de-identification
+enforced and verified on every run (the corpus ships raw usernames; zero
+survive into Silver — proven against all 179k authors). Databricks notebooks
+and a tested dbt project mirror the transforms; the Snowflake loader is
+code-complete and gated on cost approval. Next: run the cloud mirrors, then
+Phase 2 (ML scoring).
 
 _Screenshots: TBD (added in Phase 4)._
