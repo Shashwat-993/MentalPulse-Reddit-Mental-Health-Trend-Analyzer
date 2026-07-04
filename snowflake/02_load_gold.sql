@@ -44,10 +44,39 @@ TRUNCATE TABLE IF EXISTS GOLD_POSTS_FEATURES;
 TRUNCATE TABLE IF EXISTS GOLD_SUBREDDIT_WEEKLY;
 PUT file://data/gold/gold_posts_features.parquet   @GOLD_STAGE AUTO_COMPRESS = FALSE;
 PUT file://data/gold/gold_subreddit_weekly.parquet @GOLD_STAGE AUTO_COMPRESS = FALSE;
+-- Explicit transforms (not MATCH_BY_COLUMN_NAME): the parquet mirror stores
+-- created_date/week as timestamps, which Snowflake will not implicitly
+-- narrow to DATE during COPY. The variant exposes them as raw int64
+-- MICROSECONDS since epoch (pandas 3 datetime64[us]) — hence scale 6.
 COPY INTO GOLD_POSTS_FEATURES
-  FROM @GOLD_STAGE/gold_posts_features.parquet
-  FILE_FORMAT = (FORMAT_NAME = PQ) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+  FROM (
+    SELECT
+      $1:post_id::VARCHAR,
+      $1:subreddit::VARCHAR,
+      TO_DATE(TO_TIMESTAMP($1:created_date::BIGINT, 6)),
+      TO_DATE(TO_TIMESTAMP($1:week::BIGINT, 6)),
+      $1:author_hash::VARCHAR,
+      $1:n_chars::INTEGER,
+      $1:n_words::INTEGER,
+      $1:sentiment_score::FLOAT,
+      $1:sentiment_label::VARCHAR,
+      $1:crisis_score::FLOAT,
+      $1:crisis_flag::BOOLEAN
+    FROM @GOLD_STAGE/gold_posts_features.parquet
+  )
+  FILE_FORMAT = (FORMAT_NAME = PQ);
 COPY INTO GOLD_SUBREDDIT_WEEKLY
-  FROM @GOLD_STAGE/gold_subreddit_weekly.parquet
-  FILE_FORMAT = (FORMAT_NAME = PQ) MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+  FROM (
+    SELECT
+      $1:subreddit::VARCHAR,
+      TO_DATE(TO_TIMESTAMP($1:week::BIGINT, 6)),
+      $1:n_posts::INTEGER,
+      $1:n_active_authors::INTEGER,
+      $1:avg_word_count::FLOAT,
+      $1:sentiment::FLOAT,
+      $1:crisis_count::INTEGER,
+      $1:crisis_rate::FLOAT
+    FROM @GOLD_STAGE/gold_subreddit_weekly.parquet
+  )
+  FILE_FORMAT = (FORMAT_NAME = PQ);
 REMOVE @GOLD_STAGE;

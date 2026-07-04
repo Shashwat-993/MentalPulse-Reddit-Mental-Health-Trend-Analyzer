@@ -12,7 +12,7 @@ Built one phase at a time. Each phase is verified before the next begins.
 - [x] `.env.example`
 - [x] `docs/architecture.md` (diagram) + `docs/interview_narrative.md` skeleton
 
-## Phase 1 — Data Engineering 🟨 (local ✅ + Databricks/dbt ✅; Snowflake load blocked on account config)
+## Phase 1 — Data Engineering ✅
 _Reddit research corpus → Bronze → Silver → Gold, mirrored locally + on
 Databricks, with an approved path to load Gold into Snowflake._
 
@@ -45,20 +45,20 @@ Databricks, with an approved path to load Gold into Snowflake._
 - [x] dbt project + tests — `dbt run` built silver/gold on Databricks and
       **`dbt test` passes 15/15** (not_null/unique `post_id`, accepted_values
       on `subreddit`, not_null dates/weeks/counts)
-- [~] Snowflake `01_setup.sql` + loader (`02_load_gold.sql`,
-      `snowflake/load_gold.py`) — code-complete and **approved (2026-07-03)**,
-      but the load is blocked by account auth config: PAT auth fails with
-      "Network policy is required" and password auth demands interactive TOTP
-      MFA. One-time fix in Snowsight (as ACCOUNTADMIN): create a network
-      policy (e.g. `CREATE NETWORK POLICY mentalpulse_allow ALLOWED_IP_LIST =
-      ('0.0.0.0/0')` — or tighter) and `ALTER USER <user> SET NETWORK_POLICY =
-      mentalpulse_allow`, then re-run `python snowflake/load_gold.py`.
-- [~] Acceptance: local Bronze parquet ✅; zero raw usernames in Silver ✅
+- [x] Snowflake `01_setup.sql` + loader (`02_load_gold.sql`,
+      `snowflake/load_gold.py`) — **loaded and verified (2026-07-04)**:
+      `MENTALPULSE.GOLD.GOLD_POSTS_FEATURES` 203,293 rows,
+      `GOLD_SUBREDDIT_WEEKLY` 396 rows; per-subreddit totals and week spans
+      match the local/Databricks Gold exactly; unscored sentiment/crisis
+      columns are NULL as designed. Unblocked by a user-created network
+      policy (PAT auth requires one). Loader notes: PAT sessions are pinned
+      to their minted role (`USE ROLE` skipped), and parquet timestamps load
+      via explicit micro-second casts in the COPY transforms.
+- [x] Acceptance: local Bronze parquet ✅; zero raw usernames in Silver ✅
       (proven: 0 of 179,173 raw authors survive; enforced on every run +
       pytest, re-verified on Databricks); Gold schema documented ✅
       (`docs/data_model.md`); dbt tests pass ✅ (15/15 against the live
-      workspace); approved path to Snowflake 🟨 (approved; loader ready;
-      blocked on the network-policy fix above)
+      workspace); Gold loaded into Snowflake ✅ (row counts verified)
 
 ## Phase 2 — Machine Learning ⬜
 _Two MLflow-tracked models; scores written back to Gold and pushed to Snowflake._

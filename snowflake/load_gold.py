@@ -41,19 +41,36 @@ def main() -> None:
             f"Missing {missing} under {gold_dir} — run `python -m ingestion.run_pipeline`"
         )
 
+    # No role= here: PATs are restricted to the role they were minted with,
+    # and Snowflake rejects a different role in the connect string. The SQL
+    # script switches to MENTALPULSE_ROLE itself (USE ROLE, first statement).
     conn = snowflake.connector.connect(
         account=cfg.secrets.snowflake_account,
         user=cfg.secrets.snowflake_user,
         password=cfg.secrets.snowflake_pat or cfg.secrets.snowflake_password,
-        role=cfg.snowflake.role,
         warehouse=cfg.snowflake.warehouse,
     )
     try:
         sql = (REPO_ROOT / "snowflake" / "02_load_gold.sql").read_text()
         # Make the PUT file paths absolute for this machine.
         sql = sql.replace("file://data/gold/", f"file://{gold_dir}/")
-        for cursor in conn.execute_string(sql, remove_comments=True):
-            print(f"[ok] {cursor.query.splitlines()[0][:80]}")
+
+        from io import StringIO
+
+        from snowflake.connector.util_text import split_statements
+
+        with conn.cursor() as cur:
+            for stmt, _ in split_statements(StringIO(sql), remove_comments=True):
+                try:
+                    cur.execute(stmt)
+                    print(f"[ok] {stmt.splitlines()[0][:80]}")
+                except snowflake.connector.errors.ProgrammingError as exc:
+                    # PAT sessions are pinned to the role the token was minted
+                    # with and reject USE ROLE; continue as that role.
+                    if "USE ROLE not allowed" in str(exc):
+                        print(f"[skip] {stmt.strip()[:60]} (PAT role-restricted session)")
+                    else:
+                        raise
         with conn.cursor() as cur:
             for table in ("GOLD_POSTS_FEATURES", "GOLD_SUBREDDIT_WEEKLY"):
                 cur.execute(f"SELECT COUNT(*) FROM MENTALPULSE.GOLD.{table}")
