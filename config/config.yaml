@@ -9,23 +9,39 @@ project:
   environment: dev          # dev | prod
 
 # --- Phase 1: data source -----------------------------------------------------
-# Primary source is a pre-collected, already-anonymized Reddit research corpus
-# (no live API, no approval gate). The corpus is downloaded once at the start of
-# Phase 1 (see PROGRESS.md). A live API source (e.g. Bluesky) can be added later.
+# Primary source is a pre-collected Reddit research corpus (no live API, no
+# approval gate): Low et al.'s Reddit Mental Health Dataset, Zenodo record
+# 3941387, ODC-PDDL license. NOTE (verified 2026-07-03): the corpus contains
+# RAW Reddit usernames in its `author` column — it is NOT de-identified at the
+# author level. Our Bronze->Silver anonymization step is therefore mandatory,
+# and raw/Bronze data must never leave this machine (data/ is gitignored).
+# A live API source can be added later.
 source:
   type: research_corpus     # research_corpus | live_api (live_api deferred)
   # Primary dataset, with a guaranteed-open fallback if it is ever unavailable.
   dataset: reddit_mental_health   # Low et al. Reddit Mental Health Dataset (Zenodo)
   fallback_dataset: go_emotions   # google-research-datasets/go_emotions (Apache-2.0)
+  zenodo_record_id: 3941387
   raw_dir: data/raw         # downloaded corpus lands here before Bronze
-  # Mental-health communities to keep when the corpus is labeled by subreddit.
+  # Mental-health communities to ingest. Names must match the corpus file
+  # naming: <subreddit>_<period>_features_tfidf_256.csv (all lowercase).
   subreddits:
     - mentalhealth
-    - Anxiety
+    - anxiety
     - depression
-    - bipolar
-    - ADHD
-    - therapy
+    - adhd
+    - bipolarreddit
+    - suicidewatch
+  # Corpus collection windows: pre = Dec 2018–Dec 2019 (pre-pandemic),
+  # post = Jan–Apr 2020 (mid-pandemic); 2018/2019 are calendar-year sets that
+  # overlap `pre`. Silver dedupes by post_id, so overlapping periods are safe.
+  periods:
+    - pre
+    - post
+  # The corpus ships ~346 precomputed feature columns (readability, LIWC,
+  # tf-idf). Bronze keeps only the raw post fields (subreddit, author, date,
+  # post); Phase 2 computes its own features from text.
+  keep_feature_columns: false
 
 # --- Local medallion mirror (dev). Mirrors the Databricks Delta layout. -------
 paths:
@@ -34,8 +50,10 @@ paths:
   gold: data/gold
 
 # --- Phase 1: anonymization ---------------------------------------------------
-# The research corpus is already de-identified; this step enforces and verifies
-# it — any author-like field is hashed (salt from .env) or dropped before Silver.
+# The corpus contains raw usernames (verified — see the source note above), so
+# this step is where de-identification actually happens: any author-like field
+# is salted-SHA-256 hashed (salt from .env) or dropped before Silver, and PII
+# patterns are scrubbed from post text. Verified after every pipeline run.
 anonymization:
   hash_algo: sha256
   # The salt is read from .env (MENTALPULSE_HASH_SALT) and is NEVER stored here.

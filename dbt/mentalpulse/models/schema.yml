@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: silver_posts
+    description: >
+      Clean, de-identified posts (first shareable layer). Raw usernames are
+      salted-SHA-256 hashed; PII patterns scrubbed from text.
+    columns:
+      - name: post_id
+        tests: [not_null, unique]
+      - name: subreddit
+        tests:
+          - not_null
+          # Mirrors config/config.yaml source.subreddits — update both together.
+          - accepted_values:
+              arguments:
+                values:
+                  - mentalhealth
+                  - anxiety
+                  - depression
+                  - adhd
+                  - bipolarreddit
+                  - suicidewatch
+      - name: created_date
+        tests: [not_null]
+      - name: author_hash
+        description: Salted SHA-256 pseudonym; never a raw username.
+      - name: text
+        tests: [not_null]
+
+  - name: gold_posts_features
+    description: Per-post features; model scores backfilled in Phase 2.
+    columns:
+      - name: post_id
+        tests: [not_null, unique]
+      - name: week
+        tests: [not_null]
+      - name: n_words
+        tests: [not_null]
+
+  - name: gold_subreddit_weekly
+    description: Weekly aggregate trends per subreddit (dashboard table).
+    columns:
+      - name: subreddit
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - mentalhealth
+                  - anxiety
+                  - depression
+                  - adhd
+                  - bipolarreddit
+                  - suicidewatch
+      - name: week
+        tests: [not_null]
+      - name: n_posts
+        tests: [not_null]

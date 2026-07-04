@@ -19,7 +19,7 @@ dashboard.
 flowchart LR
     R[Reddit research corpus<br/>Low et al. / GoEmotions] --> B[Bronze Delta<br/>raw landed]
     B --> S[Silver Delta<br/>anonymized + cleaned]
-    S --> G[Gold Delta<br/>features + daily aggregates]
+    S --> G[Gold Delta<br/>features + weekly aggregates]
     G -->|sentiment + crisis scores| G
     G --> SF[(Snowflake<br/>curated Gold)]
     SF --> CX[Cortex Search<br/>enterprise retrieval]
@@ -43,18 +43,26 @@ flowchart LR
     S --> M2 --> G
 ```
 
-> **Source note:** Phase 1 ingests a pre-collected, already-anonymized Reddit
-> research corpus (Low et al.'s Reddit Mental Health Dataset; GoEmotions
-> fallback) instead of the live Reddit API — no approval gate, identical
-> downstream pipeline. A live API source (e.g. Bluesky) can be added later.
+> **Source note:** Phase 1 ingests a pre-collected Reddit research corpus
+> (Low et al.'s Reddit Mental Health Dataset, Zenodo 3941387, ODC-PDDL;
+> GoEmotions fallback) instead of the live Reddit API — no approval gate,
+> identical downstream pipeline. Inspection at ingestion time showed the corpus
+> **contains raw usernames**, so de-identification genuinely happens in our
+> Bronze→Silver step (it is enforced and verified, not assumed). A live API
+> source (e.g. Bluesky) can be added later.
 
 ## Medallion layers
 
 | Layer  | Contents | Notes |
 | ------ | -------- | ----- |
-| Bronze | Raw Reddit posts + comments (from the research corpus) | Immutable landing zone. |
-| Silver | Anonymized, deduped, cleaned | Raw usernames dropped/hashed here — they never reach Silver. PII stripped. |
-| Gold   | `gold_posts_features`, `gold_subreddit_daily` | Per-post features + daily subreddit aggregates; model scores added in Phase 2. |
+| Bronze | Raw corpus posts, as shipped | Immutable landing zone. Contains raw usernames — never leaves the machine/workspace (gitignored, restricted). |
+| Silver | Anonymized, deduped, cleaned | Raw usernames salted-SHA-256 hashed here — they never reach Silver. PII scrubbed. First shareable layer. |
+| Gold   | `gold_posts_features`, `gold_subreddit_weekly` | Per-post features + weekly subreddit aggregates; model scores added in Phase 2. |
+
+Full column-level schemas: [`data_model.md`](data_model.md). The transforms
+exist in three synchronized forms: pandas (`ingestion/transforms.py`, the
+source of truth, runs locally), PySpark (`databricks/01–03`), and dbt SQL
+(`dbt/mentalpulse/`, with schema tests).
 
 ## Models (Phase 2)
 

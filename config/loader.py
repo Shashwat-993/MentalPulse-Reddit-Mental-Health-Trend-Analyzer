@@ -31,6 +31,11 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "config" / "config.yaml"
 
+# Secret field -> environment variable, for error messages that name the
+# variable the user actually has to set (fields without an entry use their
+# uppercased name). Keep in sync with Secrets.from_env.
+ENV_VAR_NAMES = {"hash_salt": "MENTALPULSE_HASH_SALT"}
+
 
 @dataclass(frozen=True)
 class Secrets:
@@ -84,9 +89,10 @@ class Secrets:
         """
         missing = [n for n in names if not getattr(self, n, None)]
         if missing:
+            env_names = sorted(ENV_VAR_NAMES.get(n, n.upper()) for n in missing)
             raise RuntimeError(
                 "Missing required secret(s) — set them in your .env file: "
-                + ", ".join(sorted(missing))
+                + ", ".join(env_names)
             )
 
 

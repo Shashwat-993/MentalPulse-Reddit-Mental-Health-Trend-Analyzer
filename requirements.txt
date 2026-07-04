@@ -14,10 +14,12 @@ python-dotenv==1.2.2
 PyYAML==6.0.3
 pandas==3.0.3
 pyarrow==24.0.0
+numpy==2.4.6                      # used directly by ml/ (also a pandas dep)
 
-# ---- Phase 1: Reddit ingestion ----
-praw==7.8.1
-emoji==2.15.0                     # emoji handling during text normalization
+# ---- Phase 1: corpus ingestion ----
+# The corpus is downloaded via the stdlib (ingestion/corpus.py) — no HTTP
+# dependency. praw was dropped with the live Reddit API path (see PROGRESS.md).
+emoji==2.15.0                     # emoji handling during text normalization (Phase 2)
 
 # ---- Phase 1/2: Lakehouse transforms + tests (dbt on Databricks) ----
 dbt-databricks==1.12.0

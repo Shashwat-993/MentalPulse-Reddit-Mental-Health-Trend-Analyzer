@@ -1,0 +1,24 @@
+# MentalPulse dbt project (adapter: dbt-databricks).
+# Re-expresses the Silver and Gold transforms (ingestion/transforms.py) as
+# tested SQL models over the Bronze Delta table landed by
+# databricks/01_bronze_ingest.py.
+
+name: mentalpulse
+version: "0.1.0"
+config-version: 2
+
+profile: mentalpulse
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+target-path: target
+clean-targets: [target, dbt_packages, logs]
+
+models:
+  mentalpulse:
+    +materialized: table
+    silver:
+      +schema: silver
+    gold:
+      +schema: gold
