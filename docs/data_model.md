@@ -20,7 +20,7 @@ access-restricted.
 
 | Column | Type | Notes |
 | ------ | ---- | ----- |
-| `post_id` | string (16 hex) | Derived at landing: `sha1(subreddit\|author\|date\|post)[:16]`. Dedupe/join key; platform-internal (local and Spark ids are not comparable). |
+| `post_id` | string (16 hex) | Derived at landing: `sha1(subreddit\|author\|date\|post)[:16]`, missing fields hashing as empty strings — identical in the local loader and the Spark ingest (which uses `coalesce(col, '')`), so ids agree across mirrors for identical inputs. Dedupe/join key only. |
 | `subreddit` | string | Community, as shipped (lowercase). |
 | `author` | string | **RAW Reddit username, as shipped.** Hashed + dropped in Silver. |
 | `created_date` | string | Post date as shipped (`YYYY/MM/DD`). |

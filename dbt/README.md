@@ -18,8 +18,17 @@ Tests: `not_null` / `unique` on `post_id`, `accepted_values` on `subreddit`
 ## Running
 
 Connection settings come from the environment (`.env`) — `DATABRICKS_HOST`,
-`DATABRICKS_TOKEN`, `DATABRICKS_HTTP_PATH` — plus `MENTALPULSE_HASH_SALT` for
-the Silver author hashing. Never commit credentials.
+`DATABRICKS_TOKEN`, `DATABRICKS_HTTP_PATH`. Never commit credentials.
+
+The Silver author hashing reads its salt from a Databricks secret scope via
+`secret('mentalpulse', 'hash_salt')`, resolved server-side at query time — an
+`env_var()` would render the salt into compiled SQL and `manifest.json`.
+One-time setup (same scope notebook 02 uses):
+
+```bash
+databricks secrets create-scope mentalpulse
+databricks secrets put-secret mentalpulse hash_salt   # paste MENTALPULSE_HASH_SALT
+```
 
 ```bash
 cd dbt/mentalpulse

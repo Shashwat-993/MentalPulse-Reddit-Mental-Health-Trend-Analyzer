@@ -44,9 +44,24 @@ RAW_COLUMNS = ["subreddit", "author", "date", "post"]
 
 
 def derive_post_id(subreddit, author, date, post) -> str:
-    """Stable 16-hex-char id for one post (not secret — just a dedupe/join key)."""
-    raw = f"{subreddit}|{author}|{date}|{post}".encode("utf-8", errors="replace")
+    """Stable 16-hex-char id for one post (not secret — just a dedupe/join key).
+
+    Missing values hash as empty strings, matching the Spark mirror's
+    ``coalesce(col, '')`` inside ``concat_ws`` (databricks/01_bronze_ingest.py)
+    so both loaders derive the same id for the same row.
+    """
+    parts = ["" if _is_missing(v) else str(v) for v in (subreddit, author, date, post)]
+    raw = "|".join(parts).encode("utf-8", errors="replace")
     return hashlib.sha1(raw).hexdigest()[:16]
+
+
+def _is_missing(value) -> bool:
+    if value is None:
+        return True
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def parse_corpus_csv(path: Path, *, period: str) -> pd.DataFrame:

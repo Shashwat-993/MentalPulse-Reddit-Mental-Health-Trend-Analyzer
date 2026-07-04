@@ -66,13 +66,21 @@ def main() -> None:
                     print(f"[ok] {stmt.splitlines()[0][:80]}")
                 except snowflake.connector.errors.ProgrammingError as exc:
                     # PAT sessions are pinned to the role the token was minted
-                    # with and reject USE ROLE; continue as that role.
-                    if "USE ROLE not allowed" in str(exc):
+                    # with and reject USE ROLE; continue as that role. Observed
+                    # error: errno 3107, sqlstate 42501, "Current session is
+                    # restricted. USE ROLE not allowed." — match the stable
+                    # errno first, message text as fallback.
+                    if exc.errno == 3107 or "USE ROLE not allowed" in str(exc):
                         print(f"[skip] {stmt.strip()[:60]} (PAT role-restricted session)")
                     else:
                         raise
         with conn.cursor() as cur:
             for table in ("GOLD_POSTS_FEATURES", "GOLD_SUBREDDIT_WEEKLY"):
+                # `table` iterates a hardcoded tuple, but guard it explicitly
+                # so the f-string-into-execute stays provably injection-free
+                # if the list is ever built dynamically.
+                if not table.isidentifier():
+                    raise ValueError(f"Unexpected table name: {table!r}")
                 cur.execute(f"SELECT COUNT(*) FROM MENTALPULSE.GOLD.{table}")
                 print(f"{table}: {cur.fetchone()[0]:,} rows")
     finally:

@@ -73,3 +73,14 @@ def test_derive_post_id_is_stable_and_distinct():
     assert a == derive_post_id("anxiety", "jane", "2019/01/07", "hello")
     assert a != derive_post_id("anxiety", "jane", "2019/01/07", "hello!")
     assert len(a) == 16
+
+
+def test_derive_post_id_missing_values_hash_as_empty():
+    """Missing fields hash as '' — the same convention as the Spark ingest's
+    coalesce(col, ''), so both Bronze loaders derive identical ids."""
+    import hashlib
+
+    for missing in (None, float("nan"), pd.NA):
+        assert derive_post_id("anxiety", missing, "2019/01/07", "hello") == (
+            hashlib.sha1(b"anxiety||2019/01/07|hello").hexdigest()[:16]
+        )

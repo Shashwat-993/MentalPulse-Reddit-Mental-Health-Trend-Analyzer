@@ -47,13 +47,21 @@ bronze = (
     .withColumnRenamed("date", "created_date")
     # <subreddit>_<period>_features_tfidf_256.csv -> period
     .withColumn("period", F.split(F.col("source_file"), "_").getItem(1))
-    # Deterministic id — Spark's null handling in concat_ws differs from the
-    # local loader's Python f-string, so ids are platform-internal; they are a
-    # dedupe/join key, never compared across the local and Databricks mirrors.
+    # Deterministic id. coalesce-to-'' matches the local loader's missing-value
+    # handling (derive_post_id), so both mirrors derive the same id for the
+    # same row — concat_ws alone would silently skip nulls and diverge.
     .withColumn(
         "post_id",
         F.substring(
-            F.sha1(F.concat_ws("|", "subreddit", "author", "created_date", "post")),
+            F.sha1(
+                F.concat_ws(
+                    "|",
+                    *[
+                        F.coalesce(F.col(c), F.lit(""))
+                        for c in ("subreddit", "author", "created_date", "post")
+                    ],
+                )
+            ),
             1,
             16,
         ),

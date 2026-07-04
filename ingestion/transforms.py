@@ -84,7 +84,10 @@ def bronze_to_silver(bronze: pd.DataFrame, *, salt: str) -> SilverResult:
     df = df.loc[parsed.notna()]
 
     before = len(df)
-    df = df.sort_values(["post_id", "period", "source_file"]).drop_duplicates(
+    # created_date breaks residual ties deterministically (mirrors the dbt
+    # model); rows tied on all three are byte-identical since post_id is
+    # content-derived.
+    df = df.sort_values(["post_id", "period", "source_file", "created_date"]).drop_duplicates(
         subset="post_id", keep="first"
     )
     dropped["duplicate_post_id"] = before - len(df)

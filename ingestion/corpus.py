@@ -47,6 +47,11 @@ class CorpusFile:
 
 
 def _request(url: str) -> urllib.request.Request:
+    # Download URLs come from the Zenodo API response; refuse anything but
+    # https so a compromised/mis-served response can't redirect urlopen to
+    # file:// or another scheme.
+    if not url.startswith("https://"):
+        raise ValueError(f"Refusing non-https corpus URL: {url!r}")
     return urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
 
 

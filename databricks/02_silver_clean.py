@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 from pyspark.sql import functions as F, Window
 
-from ingestion.anonymize import DROP_COLUMNS, PII_PATTERNS, REDACTION_TEMPLATE
+from ingestion.anonymize import DROP_COLUMNS, REDACTION_TEMPLATE, spark_patterns
 from ingestion.transforms import DELETED_MARKERS
 
 # COMMAND ----------
@@ -59,10 +59,11 @@ silver = silver.withColumn(
 ).drop("post", *DROP_COLUMNS)
 
 # 3. scrub PII from text — same patterns, same order, as ingestion/anonymize.py
-for kind, pattern in PII_PATTERNS.items():
+#    (spark_patterns() keeps re.IGNORECASE via an inline (?i) prefix)
+for kind, pattern in spark_patterns().items():
     silver = silver.withColumn(
         "text",
-        F.regexp_replace("text", pattern.pattern, REDACTION_TEMPLATE.format(kind=kind)),
+        F.regexp_replace("text", pattern, REDACTION_TEMPLATE.format(kind=kind)),
     )
 
 # 4. parse dates; drop unparseable (try_to_date nulls bad input instead of
@@ -105,8 +106,8 @@ unhashed = (
 )
 assert unhashed == 0, f"{unhashed} raw author value(s) present in author_hash"
 
-for kind, pattern in PII_PATTERNS.items():
-    hits = silver.where(F.col("text").rlike(pattern.pattern)).count()
+for kind, pattern in spark_patterns().items():
+    hits = silver.where(F.col("text").rlike(pattern)).count()
     assert hits == 0, f"{hits} unscrubbed {kind} pattern(s) remain in text"
 
 print("verification passed: raw columns dropped, 0 raw authors, 0 PII patterns")

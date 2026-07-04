@@ -47,6 +47,21 @@ REDACTION_TEMPLATE = "[REDACTED:{kind}]"
 DROP_COLUMNS = ["author", "author_fullname"]
 
 
+def spark_patterns() -> dict[str, str]:
+    """PII patterns as Java-regex strings for Spark, flags preserved inline.
+
+    ``pattern.pattern`` alone drops compiled flags like ``re.IGNORECASE``, so a
+    Spark ``regexp_replace``/``rlike`` built from it would silently become
+    case-sensitive (``HTTPS://…`` or ``U/name`` would slip through). Always use
+    this helper — never ``.pattern`` directly — when mirroring the scrub in
+    Spark or SQL.
+    """
+    return {
+        kind: ("(?i)" if pattern.flags & re.IGNORECASE else "") + pattern.pattern
+        for kind, pattern in PII_PATTERNS.items()
+    }
+
+
 def _is_missing(value) -> bool:
     """True for None, NaN, and pd.NA — any scalar pandas treats as missing."""
     if value is None:

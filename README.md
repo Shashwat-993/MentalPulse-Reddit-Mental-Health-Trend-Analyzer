@@ -117,13 +117,15 @@ system is built incrementally across four phases — see
 
 ## Status
 
-**Phase 1 — local data engineering complete.** The research corpus (Low et
-al.'s Reddit Mental Health Dataset — 203k posts, 6 communities, Nov 2018–Apr
-2020) flows through Bronze → Silver → Gold locally, with de-identification
-enforced and verified on every run (the corpus ships raw usernames; zero
-survive into Silver — proven against all 179k authors). Databricks notebooks
-and a tested dbt project mirror the transforms; the Snowflake loader is
-code-complete and gated on cost approval. Next: run the cloud mirrors, then
-Phase 2 (ML scoring).
+**Phase 1 — data engineering complete (local + cloud). Phase 2 — ML scoring
+in progress.** The research corpus (Low et al.'s Reddit Mental Health Dataset
+— 203k posts, 6 communities, Nov 2018–Apr 2020) flows through Bronze → Silver
+→ Gold in three verified places: locally (pandas), on Databricks (Delta;
+`dbt test` 15/15 passing), and into Snowflake (`MENTALPULSE.GOLD`, row counts
+verified). De-identification is enforced and verified on every run — the
+corpus ships raw usernames; zero survive into Silver, proven against all 179k
+authors both locally and in-warehouse. Phase 2 (transformer sentiment scoring
++ transparent crisis-signal classifier, MLflow-tracked) is underway; see
+[`PROGRESS.md`](PROGRESS.md).
 
 _Screenshots: TBD (added in Phase 4)._

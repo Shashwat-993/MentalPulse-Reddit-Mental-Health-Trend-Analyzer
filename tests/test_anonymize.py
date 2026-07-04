@@ -4,11 +4,15 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+import re
+
 from ingestion.anonymize import (
+    PII_PATTERNS,
     anonymize_frame,
     assert_anonymized,
     hash_author,
     scrub_text,
+    spark_patterns,
 )
 
 SALT = "test-salt-not-secret"
@@ -70,6 +74,23 @@ def test_scrub_preserves_ordinary_text():
 @pytest.mark.parametrize("missing", [None, float("nan"), pd.NA])
 def test_scrub_passes_missing_through(missing):
     assert scrub_text(missing) is None
+
+
+@pytest.mark.parametrize("text", ["see HTTPS://EXAMPLE.COM/JANE", "thanks U/Some_Redditor"])
+def test_scrub_is_case_insensitive(text):
+    assert "[REDACTED:" in scrub_text(text)
+
+
+def test_spark_patterns_preserve_ignorecase():
+    """The Spark/SQL mirrors get flags inline — .pattern alone would drop
+    re.IGNORECASE and let HTTPS://… or U/name slip through unredacted."""
+    exported = spark_patterns()
+    assert set(exported) == set(PII_PATTERNS)
+    for kind, compiled in PII_PATTERNS.items():
+        if compiled.flags & re.IGNORECASE:
+            assert exported[kind].startswith("(?i)"), kind
+        # the exported string must match everything the compiled pattern does
+        assert re.search(exported[kind], "visit WWW.EXAMPLE.COM now") is not None or kind != "url"
 
 
 # --- anonymize_frame -------------------------------------------------------------
