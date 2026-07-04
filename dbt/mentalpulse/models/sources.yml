@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: >
+      Immutable raw landing zone, loaded by databricks/01_bronze_ingest.py from
+      the research corpus CSVs. Contains RAW usernames — access stays
+      restricted; Silver is the first shareable layer.
+    database: mentalpulse
+    schema: bronze
+    tables:
+      - name: reddit_posts
+        columns:
+          - name: post_id
+            description: Deterministic id derived at landing (sha1 prefix).
+            tests: [not_null]
+          - name: author
+            description: RAW Reddit username — hashed and dropped in Silver.

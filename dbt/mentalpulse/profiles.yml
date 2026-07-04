@@ -1,0 +1,13 @@
+# Connection profile — all credentials come from the environment (.env),
+# never from this file. Run with:  dbt run --profiles-dir .
+mentalpulse:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: mentalpulse
+      schema: silver            # default schema; models override per layer
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      threads: 4
