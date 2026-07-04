@@ -63,10 +63,21 @@ dedupe by `post_id`. Every run must pass `ingestion.anonymize.assert_anonymized`
 | `author_hash` | string | |
 | `n_chars` | int | Length of cleaned text. |
 | `n_words` | int | Whitespace-token count. |
-| `sentiment_score` | float, nullable | **NULL until Phase 2** (transformer sentiment). |
-| `sentiment_label` | string, nullable | NULL until Phase 2. |
-| `crisis_score` | float, nullable | NULL until Phase 2 (weak-supervision classifier). |
-| `crisis_flag` | boolean, nullable | NULL until Phase 2. |
+| `sentiment_score` | float, nullable | Model A: `P(positive) − P(negative)` ∈ [−1, 1] from the configured transformer (`cardiffnlp/twitter-roberta-base-sentiment-latest`). NULL = not scored. |
+| `sentiment_label` | string, nullable | Model A argmax: `negative` \| `neutral` \| `positive`. |
+| `crisis_score` | float, nullable | Model B: P(crisis-signal) from the weak-supervision logistic regression (`ml/crisis.py`). NULL = not scored. |
+| `crisis_flag` | boolean, nullable | `crisis_score ≥ ml.crisis.weak_label_threshold` (0.5). Aggregate trend signal — **not a diagnosis**. |
+
+**Model A limits (documented):** Twitter-trained model — long posts are
+truncated (256 tokens), English-only, no sarcasm/context awareness.
+**Model B limits:** weak-supervision baseline — labels come from a
+conservative two-tier distress lexicon (one acute phrase, or two distinct
+severe terms); the classifier's features deliberately exclude the acute tier
+(severe-term density, first-person/negation densities, Model A sentiment,
+length) so it generalizes the heuristic rather than copying it. Holdout
+metrics measure agreement with the *heuristic*, not clinical ground truth.
+Per-author features (velocity/frequency/time-of-day) are not computable in
+this corpus (~1 post per author per window, date-only timestamps).
 
 ### `gold_subreddit_weekly` (aggregate trends — the dashboard table)
 

@@ -14,6 +14,7 @@ python-dotenv==1.2.2
 PyYAML==6.0.3
 pandas==3.0.3
 pyarrow==24.0.0
+numpy==2.4.6                      # used directly by ml/ (also a pandas dep)
 
 # ---- Phase 1: corpus ingestion ----
 # The corpus is downloaded via the stdlib (ingestion/corpus.py) — no HTTP
