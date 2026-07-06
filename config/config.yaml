@@ -69,7 +69,10 @@ ml:
   crisis:
     # Weak-supervision baseline: heuristic labels from a documented, conservative
     # distress lexicon (the lexicon lives in code, not here) + thresholds.
-    weak_label_threshold: 0.5
+    # The flag threshold is prevalence-calibrated: chosen so the classifier's
+    # flag rate matches the weak-label rate (23.1%) instead of the balanced-
+    # class-weight default of 0.5, which over-flagged at a 45.6% rate.
+    weak_label_threshold: 0.614
     classifier: logistic_regression   # transparent + explainable by design
   mlflow_experiment: /Shared/mentalpulse
 

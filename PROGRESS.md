@@ -60,13 +60,31 @@ Databricks, with an approved path to load Gold into Snowflake._
       (`docs/data_model.md`); dbt tests pass ✅ (15/15 against the live
       workspace); Gold loaded into Snowflake ✅ (row counts verified)
 
-## Phase 2 — Machine Learning ⬜
+## Phase 2 — Machine Learning ✅
 _Two MLflow-tracked models; scores written back to Gold and pushed to Snowflake._
-- [ ] Sentiment scorer (pretrained transformer) → Gold + weekly trend
-- [ ] Crisis classifier (transparent; weak-supervision labels; importances)
-- [ ] MLflow tracking (params/metrics/artifacts)
-- [ ] Refresh Gold + Snowflake; Cortex `SENTIMENT` comparison (tiny sample first)
-- [ ] Acceptance: both models run; Gold populated; Snowflake refreshed; docs
+- [x] Sentiment scorer (pretrained transformer) → Gold + weekly trend
+      (`ml/sentiment.py`): all 203,293 posts scored with
+      `cardiffnlp/twitter-roberta-base-sentiment-latest` (int8-quantized,
+      length-sorted batching, resumable 10k checkpoints — the run survived two
+      container restarts). Weekly sentiment trend live: suicidewatch ≈ −0.33,
+      depression ≈ −0.25, adhd ≈ 0.
+- [x] Crisis classifier (transparent; weak-supervision labels; importances)
+      (`ml/crisis.py`): two-tier distress lexicon → weak labels (23.1%
+      prevalence); logistic regression on features that exclude the acute
+      tier; flag threshold prevalence-calibrated to 0.614 (flag rate 23.05%;
+      holdout vs weak labels: AUC 0.73, P/R ≈ 0.45/0.45). Importances logged
+      (top: log_n_words +0.74, sentiment_score −0.55).
+- [x] MLflow tracking (params/metrics/artifacts) — local `mlruns/`, both runs
+      logged (model, quantization, thresholds, metrics, weekly-trend artifact,
+      feature importances).
+- [x] Refresh Gold + Snowflake; warehouse `SENTIMENT` comparison — local,
+      Databricks, and Snowflake Gold all refreshed with scores (203,293 +
+      396 rows verified in each). ⚠️ Cortex `SENTIMENT()` is **not available
+      on Snowflake trial accounts**; the comparison ran on Databricks
+      `ai_analyze_sentiment()` instead (200-post sample: 38% exact / 64%
+      compatible agreement — see `docs/data_model.md`).
+- [x] Acceptance: both models run ✅; Gold populated ✅ (all three targets);
+      Snowflake refreshed ✅; docs ✅
 
 ## Phase 3 — RAG + Agent ⬜
 _LangGraph agent with a swappable retrieval layer (LanceDB vs Cortex Search)._
@@ -74,7 +92,13 @@ _LangGraph agent with a swappable retrieval layer (LanceDB vs Cortex Search)._
 - [ ] `rag/tools.py` — sql_metric_tool (whitelisted) + retrieval_tool
 - [ ] `rag/agent.py` — routing, Claude API, cited answers, disclaimer + guardrails
 - [ ] Acceptance: 5+ varied grounded answers; backend swap via config only;
-      refuses individual-level/unsafe requests (**approve Cortex credits first**)
+      refuses individual-level/unsafe requests
+      > ⚠️ Constraint discovered 2026-07-04: Cortex AI features are **not
+      > available on Snowflake trial accounts**, and the project is
+      > zero-spend (no Anthropic API credits). Phase 3 therefore runs
+      > LanceDB-only with a config-switchable LLM layer (Anthropic SDK path
+      > code-complete; local transformer model for free end-to-end runs).
+      > The Cortex retriever stays code-complete but unprovisioned.
 
 ## Phase 4 — Dashboard, Eval, Polish ⬜
 > The dashboard shell was brought forward and runs now on sample data
