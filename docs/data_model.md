@@ -70,6 +70,15 @@ dedupe by `post_id`. Every run must pass `ingestion.anonymize.assert_anonymized`
 
 **Model A limits (documented):** Twitter-trained model — long posts are
 truncated (256 tokens), English-only, no sarcasm/context awareness.
+**Warehouse cross-check (2026-07-04):** Snowflake Cortex `SENTIMENT()` turned
+out to be unavailable on trial accounts, so the planned comparison ran against
+Databricks `ai_analyze_sentiment()` instead, on a 200-post de-identified
+sample: 38% exact label agreement, 64% counting our `neutral` and the
+warehouse's `mixed` as compatible. The dominant disagreement: 54 posts our
+model scores as borderline-neutral (mean −0.07) the warehouse LLM labels
+negative — it reads long-form distress venting as negative more aggressively
+than the tweet-calibrated transformer. Our continuous score is retained as
+the canonical signal; the categorical warehouse function is a coarser check.
 **Model B limits:** weak-supervision baseline — labels come from a
 conservative two-tier distress lexicon (one acute phrase, or two distinct
 severe terms); the classifier's features deliberately exclude the acute tier

@@ -213,7 +213,8 @@ def main() -> None:
         shard_size = 10_000
         for start in range(0, len(todo), shard_size):
             shard = todo.iloc[start : start + shard_size]
-            done = pd.concat([done, score_frame(shard, scorer)], ignore_index=True)
+            scored = score_frame(shard, scorer)
+            done = scored if done.empty else pd.concat([done, scored], ignore_index=True)
             done.to_parquet(ckpt_path, index=False)
             logger.info("checkpoint saved: %d/%d scored", len(done), len(silver))
         scores = done
