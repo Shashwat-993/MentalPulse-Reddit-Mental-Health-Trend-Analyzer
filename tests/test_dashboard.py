@@ -96,10 +96,99 @@ def test_pivots_have_a_column_per_community():
 # --- data source -------------------------------------------------------------
 
 
-def test_get_data_source_returns_working_mock():
-    source = dataio.get_data_source(load_config())
+def _tmp_cfg(tmp_path):
+    """A Config whose data paths point into tmp_path (absolute paths win when
+    joined onto the repo root)."""
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        "project: {name: test, environment: dev}\n"
+        f"source: {{subreddits: [anxiety, depression]}}\n"
+        "paths:\n"
+        f"  bronze: {tmp_path / 'bronze'}\n"
+        f"  silver: {tmp_path / 'silver'}\n"
+        f"  gold: {tmp_path / 'gold'}\n"
+    )
+    return load_config(cfg_file)
+
+
+def _write_gold_weekly(gold_dir):
+    gold_dir.mkdir(parents=True, exist_ok=True)
+    frame = pd.DataFrame(
+        {
+            "subreddit": ["anxiety", "anxiety", "depression", "depression"],
+            "week": pd.to_datetime(
+                ["2020-03-02", "2020-03-16", "2020-03-02", "2020-03-16"]
+            ),
+            "n_posts": [100, 120, 200, 260],
+            "n_active_authors": [100, 120, 200, 260],
+            "avg_word_count": [150.0, 160.0, 170.0, 180.0],
+            "sentiment": [-0.1, -0.2, -0.25, -0.3],
+            "crisis_count": pd.array([10, 14, 60, 90], dtype="Int64"),
+            "crisis_rate": [0.10, 0.117, 0.30, 0.346],
+        }
+    )
+    frame.to_parquet(gold_dir / "gold_subreddit_weekly.parquet", index=False)
+    return frame
+
+
+def test_get_data_source_mock_when_no_gold(tmp_path):
+    source = dataio.get_data_source(_tmp_cfg(tmp_path))
     assert source.is_mock is True
     assert not source.load().weekly.empty
+
+
+def test_get_data_source_live_when_gold_exists(tmp_path):
+    cfg = _tmp_cfg(tmp_path)
+    _write_gold_weekly(tmp_path / "gold")
+    source = dataio.get_data_source(cfg)
+    assert source.is_mock is False
+
+    loaded = source.load()
+    assert loaded.is_mock is False
+    # Contract columns lead; live extras ride along after them.
+    assert list(loaded.weekly.columns[:6]) == [
+        "week", "subreddit", "n_posts", "sentiment", "crisis_rate", "crisis_count",
+    ]
+    assert "n_active_authors" in loaded.weekly.columns
+    assert pd.api.types.is_datetime64_any_dtype(loaded.weekly["week"])
+    # The generic helpers work on the live frame unchanged.
+    k = dataio.kpis(loaded.weekly)
+    assert k["total_posts"] == 680
+    assert 0 < k["crisis_share"] < 1
+
+
+# --- covid split + smoothing ---------------------------------------------------
+
+
+def test_covid_split_deltas(tmp_path):
+    frame = _write_gold_weekly(tmp_path / "gold")
+    split = dataio.covid_split(frame, cutoff=pd.Timestamp("2020-03-10"))
+    anx = split.set_index("subreddit").loc["anxiety"]
+    assert anx["sentiment_delta"] == pytest.approx(-0.1)
+    assert anx["crisis_rate_delta"] == pytest.approx(0.017, abs=1e-3)
+    assert anx["posts_pre"] == 100 and anx["posts_post"] == 120
+
+
+def test_covid_split_empty_when_not_spanning():
+    df = build_weekly_aggregates(SUBS)  # 2024 sample data — after the cutoff
+    assert dataio.covid_split(df).empty
+    assert dataio.covid_split(pd.DataFrame()).empty
+
+
+def test_smooth_rolling_mean():
+    df = pd.DataFrame(
+        {
+            "week": pd.to_datetime(["2020-01-06", "2020-01-13", "2020-01-20"]),
+            "subreddit": "anxiety",
+            "n_posts": [10, 10, 10],
+            "sentiment": [0.0, 0.3, 0.6],
+            "crisis_rate": [0.1, 0.1, 0.4],
+            "crisis_count": [1, 1, 4],
+        }
+    )
+    out = dataio.smooth(df, window=3)
+    assert out["sentiment"].tolist() == pytest.approx([0.0, 0.15, 0.3])
+    assert dataio.smooth(df, window=1).equals(df)
 
 
 # --- preview guardrail -------------------------------------------------------
