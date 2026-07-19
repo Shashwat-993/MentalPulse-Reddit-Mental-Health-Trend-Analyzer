@@ -73,6 +73,42 @@ class MockDataSource:
         )
 
 
+class GoldDataSource:
+    """Serves the live weekly Gold table produced by the Phase 1–2 pipeline.
+
+    Reads ``data/gold/gold_subreddit_weekly.parquet`` and maps it onto the
+    dashboard's weekly contract. The Gold table is a superset of the mock
+    schema — the extra columns (``n_active_authors``, ``avg_word_count``) ride
+    along for the richer views.
+    """
+
+    is_mock = False
+    source_label = "Live Gold (local pipeline)"
+
+    def __init__(self, cfg: Config) -> None:
+        self._path = cfg.path("gold") / "gold_subreddit_weekly.parquet"
+
+    def load(self) -> DashboardData:
+        weekly = pd.read_parquet(self._path)
+        weekly["week"] = pd.to_datetime(weekly["week"])
+        # Contract types: crisis_count numeric (NA until Phase 2 scores exist).
+        weekly["crisis_count"] = weekly["crisis_count"].astype("Int64")
+        ordered = [
+            "week",
+            "subreddit",
+            "n_posts",
+            "sentiment",
+            "crisis_rate",
+            "crisis_count",
+        ]
+        extras = [c for c in weekly.columns if c not in ordered]
+        return DashboardData(
+            weekly=weekly[ordered + extras].sort_values(["subreddit", "week"]),
+            is_mock=False,
+            source_label=self.source_label,
+        )
+
+
 def _gold_available(cfg: Config) -> bool:
     """True once Phase 1 has produced Gold parquet under ``data/gold``.
 
@@ -87,23 +123,66 @@ def _gold_available(cfg: Config) -> bool:
     return gold.exists() and any(gold.rglob("*.parquet"))
 
 
-def get_data_source(cfg: Config | None = None) -> MockDataSource:
+def get_data_source(cfg: Config | None = None) -> MockDataSource | GoldDataSource:
     """Return the active data source.
 
-    Always returns a working source. The live Gold/Snowflake reader is wired in
-    here in Phase 1; until it exists we deliberately fall back to mock — so
-    dropping a Gold parquet mid-development can never brick the running
-    dashboard (the trigger and the reader are decoupled on purpose).
+    Live Gold when the pipeline has produced it; deterministic sample data
+    otherwise — so a fresh clone always has a working dashboard.
     """
     cfg = cfg or load_config()
     if _gold_available(cfg):
-        # Phase 1+: construct and return the live source here, e.g.
-        #   return GoldDataSource(cfg)
-        logger.info(
-            "Gold data detected, but the live reader is not implemented yet; "
-            "serving sample data."
-        )
+        return GoldDataSource(cfg)
     return MockDataSource(cfg)
+
+
+# The WHO pandemic declaration — the corpus was collected around this event
+# (Low et al.: pre ≈ Dec 2018–Dec 2019, post = Jan–Apr 2020), so it is the
+# natural before/after split for the impact view.
+COVID_CUTOFF = pd.Timestamp("2020-03-11")
+
+
+def covid_split(weekly: pd.DataFrame, cutoff: pd.Timestamp = COVID_CUTOFF) -> pd.DataFrame:
+    """Per-community before/after comparison around ``cutoff``.
+
+    Returns one row per subreddit with pre/post mean sentiment and crisis rate
+    plus their deltas. Empty if the data doesn't span the cutoff.
+    """
+    if weekly.empty:
+        return pd.DataFrame()
+    pre = weekly[weekly["week"] < cutoff]
+    post = weekly[weekly["week"] >= cutoff]
+    if pre.empty or post.empty:
+        return pd.DataFrame()
+
+    def _agg(df: pd.DataFrame, suffix: str) -> pd.DataFrame:
+        out = df.groupby("subreddit").agg(
+            **{
+                f"sentiment_{suffix}": ("sentiment", "mean"),
+                f"crisis_rate_{suffix}": ("crisis_rate", "mean"),
+                f"posts_{suffix}": ("n_posts", "sum"),
+            }
+        )
+        return out
+
+    merged = _agg(pre, "pre").join(_agg(post, "post"), how="inner")
+    merged["sentiment_delta"] = merged["sentiment_post"] - merged["sentiment_pre"]
+    merged["crisis_rate_delta"] = merged["crisis_rate_post"] - merged["crisis_rate_pre"]
+    return merged.round(4).reset_index()
+
+
+def smooth(weekly: pd.DataFrame, window: int = 3) -> pd.DataFrame:
+    """Rolling-mean smoothing of sentiment/crisis_rate per community."""
+    if weekly.empty or window <= 1:
+        return weekly
+    out = weekly.sort_values(["subreddit", "week"]).copy()
+    for col in ("sentiment", "crisis_rate"):
+        if col in out.columns:
+            out[col] = (
+                out.groupby("subreddit")[col]
+                .transform(lambda s: s.rolling(window, min_periods=1).mean())
+                .astype("Float64")
+            )
+    return out
 
 
 # --- aggregate query helpers (operate on the weekly long-form table) ----------
