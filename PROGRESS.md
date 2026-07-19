@@ -101,12 +101,21 @@ _LangGraph agent with a swappable retrieval layer (LanceDB vs Cortex Search)._
       > The Cortex retriever stays code-complete but unprovisioned.
 
 ## Phase 4 — Dashboard, Eval, Polish ⬜
-> The dashboard shell was brought forward and runs now on sample data
-> (`streamlit run dashboard/app.py`); it wires to live data as Phases 1-3 land.
-- [~] Streamlit dashboard shell built & runnable on sample data
-      (`dashboard/app.py`): sentiment trends, aggregate crisis volume, preview
-      analyst panel, disclaimer banner; data-access seam swaps to live
-      Gold/Snowflake. Streamlit-in-Snowflake deploy finalized in Phase 4.
+> The dashboard was brought forward (2026-07-19) and now runs **feature-rich on
+> live scored Gold data** (`streamlit run dashboard/app.py`).
+- [x] Streamlit dashboard on live Gold (`dashboard/app.py` + `dashboard/data.py`):
+      the data seam auto-detects `data/gold/gold_subreddit_weekly.parquet` and
+      serves the real 203,293-post aggregates (mock fallback kept for fresh
+      clones). Five tabs — 📈 Trends (sentiment + crisis-rate lines with a
+      COVID-19 declaration marker), 🦠 COVID-19 impact (per-community pre/post
+      Δ-sentiment and Δ-crisis bars + table: sentiment fell in all 6
+      communities post-declaration; crisis rate rose in 5/6), 🗓️ Heatmaps
+      (diverging sentiment, sequential crisis volume), 👥 Communities
+      (overview + drill-down), 💬 Ask (guardrailed preview). Sidebar filters
+      (communities, date range, 3-week smoothing), 5 KPIs, CSV export,
+      accessibility-validated fixed color mapping. Verified by running
+      headless and screenshotting every tab. Streamlit-in-Snowflake deploy
+      finalized later in Phase 4.
 - [ ] `eval/ragas_eval.py` — ~15 Q&A; faithfulness/relevancy/context P&R; both backends
 - [ ] `docs/architecture.md` — finalize diagram + dual-deployment comparison table
 - [ ] `docs/interview_narrative.md` — STAR writeup + 6–8 Q&A
