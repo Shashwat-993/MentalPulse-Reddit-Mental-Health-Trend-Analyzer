@@ -49,6 +49,7 @@ These rules are non-negotiable and are enforced in code, not just documented:
 | Transforms | dbt-databricks (models + tests) |
 | ML + tracking | scikit-learn / HuggingFace transformers, MLflow |
 | Warehouse | Snowflake (curated Gold) |
+| Knowledge corpus | Firecrawl → allowlisted public health guidance (NIMH/NHS/WHO/CDC), chunked + citable |
 | Semantic retrieval | Snowflake Cortex Search **and** local LanceDB (swappable) |
 | Agent | LangGraph + Claude API (official Anthropic SDK) |
 | Dashboard | Streamlit (Streamlit-in-Snowflake; local fallback) |
@@ -64,13 +65,13 @@ and the open-source-vs-enterprise dual-deployment comparison.
 ```
 .
 ├── config/        # config.yaml + loader (reads .env for secrets)
-├── ingestion/     # research-corpus loader, parsing, anonymization
+├── ingestion/     # research-corpus loader, anonymization, knowledge corpus
 ├── data/          # local Bronze/Silver/Gold mirror (gitignored)
 ├── databricks/    # medallion + model-training notebooks
 ├── dbt/           # dbt-databricks project (Silver/Gold models + tests)
 ├── snowflake/     # warehouse setup, Gold load, Cortex Search, SiS deploy
 ├── rag/           # retriever interface + 2 backends, tools, LangGraph agent
-├── dashboard/     # Streamlit dashboard (runnable now on sample data)
+├── dashboard/     # Streamlit dashboard (runs on live scored Gold)
 ├── eval/          # Ragas evaluation (both retriever backends)
 ├── tests/         # pytest suite
 └── docs/          # architecture + interview narrative

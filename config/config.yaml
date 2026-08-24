@@ -76,6 +76,75 @@ ml:
     classifier: logistic_regression   # transparent + explainable by design
   mlflow_experiment: /Shared/mentalpulse
 
+# --- Phase 3: knowledge corpus (Firecrawl) ------------------------------------
+# What the RAG agent retrieves over. Deliberately NOT the Reddit posts: the
+# guardrail answers with aggregate cohort trends only and never quotes or
+# attributes an individual post, so indexing post text would work against the
+# project's own responsible-use stance. Instead we index public clinical /
+# public-health guidance, scraped with Firecrawl, so answers pair OUR numbers
+# (from Gold) with citable context from health authorities.
+#
+# Scraping is cache-first (re-runs cost 0 credits) and restricted to the
+# hostname allowlist in ingestion/resources.py. The API key lives in .env
+# (FIRECRAWL_API_KEY); Firecrawl's free tier is 1,000 credits/month and this
+# seed list is ~20 pages, so a full refresh costs ~2% of a free month.
+knowledge:
+  cache_dir: data/resources/cache   # raw Firecrawl payloads (gitignored)
+  out_dir: data/resources           # normalized docs + chunks parquet
+  chunk_words: 220                  # retrieval chunk size
+  overlap_words: 40                 # carried across the seam
+  # Seeds are public, non-paywalled guidance pages from health authorities.
+  # `topic` maps a page to a community/theme so retrieval can be filtered.
+  # A moved or 404'd seed is reported and skipped, never fatal.
+  sources:
+    # -- depression --
+    - url: https://www.nimh.nih.gov/health/topics/depression
+      topic: depression
+    - url: https://www.who.int/news-room/fact-sheets/detail/depressive-disorder-depression
+      topic: depression
+    - url: https://www.nhs.uk/mental-health/conditions/depression/overview/
+      topic: depression
+    # -- anxiety --
+    - url: https://www.nimh.nih.gov/health/topics/anxiety-disorders
+      topic: anxiety
+    - url: https://www.who.int/news-room/fact-sheets/detail/anxiety-disorders
+      topic: anxiety
+    - url: https://www.nhs.uk/mental-health/conditions/generalised-anxiety-disorder/overview/
+      topic: anxiety
+    # -- adhd --
+    - url: https://www.nimh.nih.gov/health/topics/attention-deficit-hyperactivity-disorder-adhd
+      topic: adhd
+    - url: https://www.nhs.uk/conditions/attention-deficit-hyperactivity-disorder-adhd/
+      topic: adhd
+    # -- bipolar --
+    - url: https://www.nimh.nih.gov/health/topics/bipolar-disorder
+      topic: bipolarreddit
+    - url: https://www.nhs.uk/mental-health/conditions/bipolar-disorder/overview/
+      topic: bipolarreddit
+    # -- suicide / crisis --
+    - url: https://www.nimh.nih.gov/health/topics/suicide-prevention
+      topic: suicidewatch
+    - url: https://www.who.int/news-room/fact-sheets/detail/suicide
+      topic: suicidewatch
+    - url: https://www.nhs.uk/mental-health/feelings-symptoms-behaviours/behaviours/help-for-suicidal-thoughts/
+      topic: suicidewatch
+    - url: https://988lifeline.org/talk-to-someone-now/
+      topic: suicidewatch
+    # -- general mental health --
+    - url: https://www.who.int/news-room/fact-sheets/detail/mental-health-strengthening-our-response
+      topic: mentalhealth
+    - url: https://www.who.int/news-room/fact-sheets/detail/mental-disorders
+      topic: mentalhealth
+    - url: https://www.nimh.nih.gov/health/statistics/mental-illness
+      topic: mentalhealth
+    - url: https://www.cdc.gov/mental-health/about/index.html
+      topic: mentalhealth
+    # -- COVID-19 context: the published counterpart to our own pre/post finding
+    - url: https://www.who.int/news/item/02-03-2022-covid-19-pandemic-triggers-25-increase-in-prevalence-of-anxiety-and-depression-worldwide
+      topic: covid
+    - url: https://www.who.int/teams/mental-health-and-substance-use/mental-health-and-covid-19
+      topic: covid
+
 # --- Phase 3: RAG + agent -----------------------------------------------------
 rag:
   retriever: lancedb        # lancedb (open-source) | cortex (Snowflake) — swappable
