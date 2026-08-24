@@ -54,6 +54,9 @@ class Secrets:
     # Anthropic / Claude API (Phase 3)
     anthropic_api_key: str | None = None
     anthropic_model: str | None = None
+    # Firecrawl — knowledge-corpus scraping (Phase 3). Optional: a warm cache
+    # rebuilds the corpus without it (see ingestion/resources.py).
+    firecrawl_api_key: str | None = None
     # Snowflake (Phase 1/2)
     snowflake_account: str | None = None
     snowflake_user: str | None = None
@@ -73,6 +76,7 @@ class Secrets:
             hash_salt=os.getenv("MENTALPULSE_HASH_SALT"),
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
             anthropic_model=os.getenv("ANTHROPIC_MODEL"),
+            firecrawl_api_key=os.getenv("FIRECRAWL_API_KEY"),
             snowflake_account=os.getenv("SNOWFLAKE_ACCOUNT"),
             snowflake_user=os.getenv("SNOWFLAKE_USER"),
             snowflake_password=os.getenv("SNOWFLAKE_PASSWORD"),
