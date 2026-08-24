@@ -88,6 +88,17 @@ _Two MLflow-tracked models; scores written back to Gold and pushed to Snowflake.
 
 ## Phase 3 — RAG + Agent ⬜
 _LangGraph agent with a swappable retrieval layer (LanceDB vs Cortex Search)._
+- [x] `ingestion/resources.py` — **knowledge corpus via Firecrawl**. The agent
+      retrieves over public clinical guidance (NIMH / NHS / WHO / CDC / 988),
+      **not** the Reddit posts: the guardrail answers in aggregate and never
+      quotes an individual, so indexing post text would store exactly what the
+      agent must refuse to surface. 20 allowlisted seeds → cleaned, chunked,
+      citable documents (URL + title + retrieval date survive chunking).
+      Cache-first (re-runs cost 0 credits; `--offline` needs no key at all),
+      https + hostname allowlist enforced before any request, per-URL failures
+      reported not raised. Free tier is 1,000 credits/month and the seed list
+      is ~20 pages. 19 tests against a fake transport — no network.
+      ⏳ Needs `FIRECRAWL_API_KEY` in `.env` for the first (cache-cold) build.
 - [ ] `rag/retriever.py` — interface + LanceDB + Cortex backends (config-selectable)
 - [ ] `rag/tools.py` — sql_metric_tool (whitelisted) + retrieval_tool
 - [ ] `rag/agent.py` — routing, Claude API, cited answers, disclaimer + guardrails

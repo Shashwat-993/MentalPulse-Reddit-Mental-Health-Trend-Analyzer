@@ -22,11 +22,12 @@ flowchart LR
     S --> G[Gold Delta<br/>features + weekly aggregates]
     G -->|sentiment + crisis scores| G
     G --> SF[(Snowflake<br/>curated Gold)]
-    SF --> CX[Cortex Search<br/>enterprise retrieval]
-    G --> LV[LanceDB<br/>open-source retrieval]
+    FC[Public health guidance<br/>NIMH / NHS / WHO / CDC] -->|Firecrawl scrape| KC[Knowledge corpus<br/>chunked + citable]
+    KC --> CX[Cortex Search<br/>enterprise retrieval]
+    KC --> LV[LanceDB<br/>open-source retrieval]
     CX --> AG{{LangGraph agent<br/>+ Claude API}}
     LV --> AG
-    SF --> AG
+    SF -->|metric tool: the numbers| AG
     AG --> DASH[Streamlit dashboard]
 
     subgraph Databricks (Free Edition)
@@ -50,6 +51,39 @@ flowchart LR
 > **contains raw usernames**, so de-identification genuinely happens in our
 > Bronze→Silver step (it is enforced and verified, not assumed). A live API
 > source (e.g. Bluesky) can be added later.
+
+## What the agent retrieves over (and what it deliberately does not)
+
+The retrieval corpus is **public clinical guidance, not the Reddit posts.**
+
+Indexing post text is the obvious move and the wrong one here. The agent's hard
+rule (`rag/prompts.py`) is that it answers with aggregate, anonymized cohort
+trends and never quotes or attributes an individual post — so a vector index of
+post text would be a store of exactly the content the agent must refuse to
+surface, one prompt-injection away from a policy violation, and every citation
+would be a quote from a person in distress.
+
+So the agent answers from two separated sources:
+
+| Question | Source | Tool |
+| -------- | ------ | ---- |
+| "What do our numbers say?" | Gold aggregates (Snowflake / local parquet) | whitelisted SQL metric tool |
+| "What does that mean clinically?" | Guidance corpus (Firecrawl-scraped) | retrieval tool, cited by URL |
+
+`ingestion/resources.py` builds the second one: it scrapes an allowlisted set of
+public, non-paywalled pages from NIMH, NHS, WHO, CDC, and the 988 Lifeline into
+normalized, chunked documents that carry their source URL, title, and retrieval
+date, so every retrieved claim is attributable. Scraping is **cache-first** —
+re-runs cost zero Firecrawl credits, and `--offline` rebuilds from cache with no
+API key at all. Off-allowlist or non-https seeds are refused before any request
+is made; a moved or 404'd page is reported and skipped rather than failing the
+build.
+
+One seed is chosen to sit directly against our own result: the WHO brief on the
+pandemic's 25% increase in anxiety and depression prevalence. Our Gold data shows
+sentiment falling in all six communities after the March 2020 declaration and
+crisis-signal rate rising in five of six — the corpus lets the agent set that
+finding beside the published literature instead of asserting it alone.
 
 ## Medallion layers
 
